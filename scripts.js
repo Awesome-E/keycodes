@@ -1,3 +1,5 @@
+// #region Declare Variables
+
 const keyCodes = {
   0: 'That key has no keycode',
   3: 'break',
@@ -117,8 +119,17 @@ const keyCodes = {
   133: 'f22',
   134: 'f23',
   135: 'f24',
+  136: 'f25',
+  137: 'f26',
+  138: 'f27',
+  139: 'f28',
+  140: 'f29',
+  141: 'f30',
+  142: 'f31',
+  143: 'f32',
   144: 'num lock',
   145: 'scroll lock',
+  151: 'airplane mode',
   160: '^',
   161: '!',
   162: '؛ (arabic semicolon)',
@@ -169,7 +180,7 @@ const keyCodes = {
   242: 'hiragana/katakana',
   243: 'half-width/full-width',
   244: 'kanji',
-  251: "unlock trackpad (Chrome/Edge)",
+  251: 'unlock trackpad (Chrome/Edge)',
   255: 'toggle touchpad',
 };
 
@@ -180,26 +191,35 @@ const keyLocations = {
   3: 'Numpad',
 };
 
+const spaceDescription = '(Space character)';
+
 const body = document.querySelector('body');
 const mobileInputDiv = document.querySelector('.mobile-input');
-
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 ctx.textBaseline = 'middle';
 ctx.textAlign = 'center';
 ctx.font = '110px sans-serif';
 
-const tableBody = document.querySelector('.table-body');
-for (let key in keyCodes){
-  const row = document.createElement('tr');
-  row.innerHTML += `<td>${key}</td>`;
-  row.innerHTML += `<td>${keyCodes[key]}</td>`;
-  tableBody.appendChild(row);
+let theme = 'dark';
+
+// #endregion
+
+// #region Main Methods
+
+function createTable() {
+  const tableBody = document.querySelector('.table-body');
+  for (const key in keyCodes) {
+    const row = document.createElement('tr');
+    row.innerHTML += `<td>${key}</td>`;
+    row.innerHTML += `<td>${keyCodes[key]}</td>`;
+    tableBody.appendChild(row);
+  }
 }
 
 function toggleTable() {
   const table = document.querySelector('.table');
-  
+
   // Toggle main content and table
   document.querySelector('.wrap').classList.toggle('hide');
   document.querySelector('.keycode-display').classList.toggle('hide');
@@ -207,7 +227,7 @@ function toggleTable() {
 
   // If hidden, show back arrow
   const hidden = table.classList.contains('hide');
-  document.querySelector('.table-toggle-button').textContent = hidden ? 'Table' : '⬅';
+  document.querySelector('#table-button').textContent = hidden ? 'Table' : '⬅';
 }
 
 function drawNumberToCanvas(number) {
@@ -221,16 +241,86 @@ function drawNumberToCanvas(number) {
   link.href = data;
 }
 
-document.addEventListener('touchstart', function(e) {
+function createNotification(text) {
+  // eslint-disable-next-line no-undef
+  new Noty({
+    type: 'info',
+    layout: 'topLeft',
+    timeout: '1500',
+    theme: 'metroui',
+    progressBar: false,
+    text,
+  }).show();
+}
+
+function createTextarea(text) {
+  const textArea = document.createElement('textarea');
+
+  // Place in top-left corner of screen regardless of scroll position.
+  textArea.style.position = 'fixed';
+  textArea.style.top = 0;
+  textArea.style.left = 0;
+  textArea.style.width = '2em';
+  textArea.style.height = '2em';
+
+  textArea.style.padding = 0;
+
+  // Clean up any borders.
+  textArea.style.border = 'none';
+  textArea.style.outline = 'none';
+  textArea.style.boxShadow = 'none';
+
+  // Avoid flash of white box if rendered for any reason.
+  textArea.style.background = 'transparent';
+
+  textArea.value = text;
+
+  document.body.appendChild(textArea);
+  return textArea;
+}
+
+/**
+ * This function is used to copy a string to clipboard
+ * @param {string} text
+ */
+function copyTextToClipboard(text) {
+  if (window.clipboardData && window.clipboardData.setData) {
+    // IE specific code path to prevent textarea being shown while dialog is visible.
+    return window.clipboardData.setData('Text', text);
+  } else if (document.queryCommandSupported && document.queryCommandSupported('copy')) {
+    const textArea = createTextarea(text);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      const status = document.execCommand('copy'); // Security exception may be thrown by some browsers.
+      if (status) {
+        createNotification('Copied text to clipboard');
+      }
+      return status;
+    } catch (ex) {
+      console.warn('Copy to clipboard failed.', ex);
+      return false;
+    } finally {
+      document.body.removeChild(textArea);
+    }
+  }
+}
+
+// #endregion
+
+// #region Event Listeners
+
+document.addEventListener('touchstart', e => {
   if (document.querySelector('.mobile-input input') !== null) return;
   if (e.target.tagName === 'BUTTON') return;
-  
+
   const input = document.createElement('input');
   input.setAttribute('type', 'text');
   mobileInputDiv.appendChild(input);
 
   // For some reason, the focus is immediately lost unless there is a delay on setting the focus
-  setTimeout(function() {
+  setTimeout(() => {
     input.focus();
   }, 100);
 });
@@ -245,44 +335,41 @@ body.onkeydown = function(e) {
   document.querySelector('.keycode-display').innerHTML = e.keyCode;
 
   // Show the cards with all
-  var cards = document.querySelector('.cards');
+  const cards = document.querySelector('.cards');
   cards.classList.add('active');
   cards.classList.remove('hide');
   document.querySelector('.text-display').classList.add('hide');
 
   // Check if Key_Values is Unidentified then redirect to docs
-  var newKeyText = '';
-  if (e.key != null && e.key === 'Unidentified'){
+  let newKeyText = '';
+  if (e.key != null && e.key === 'Unidentified') {
     newKeyText = '<a href="https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values#Special_values" target="_blank" rel="noopener">Unidentified</a>';
-  } else if (e.key == ' '){
-    newKeyText = `<span class="text-muted">(Space character)</span>`;
+  } else if (e.key === ' ') {
+    newKeyText = `<span class="text-muted">${spaceDescription}</span>`;
   } else {
     newKeyText = e.key || '';
   }
 
   // Check if location is Unidentified then redirect to docs
-  var newLocationText = '';
-  var newLocationFriendlyText = '';
+  let newLocationText = '';
+  let newLocationFriendlyText = '';
   if (e.location == null) {
     newLocationFriendlyText = 'Unknown';
-  }
-  else if (!(e.location in keyLocations)) {
+  } else if (!(e.location in keyLocations)) {
     newLocationFriendlyText = '<a href="https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/location" target="_blank" rel="noopener">Other</a>';
-  }
-  else {
+  } else {
     newLocationFriendlyText = keyLocations[e.location];
   }
 
-  if (newLocationFriendlyText != 'Unknown') {
+  if (newLocationFriendlyText !== 'Unknown') {
     newLocationText = `${e.location} <span class="text-muted">(${newLocationFriendlyText})</span>`;
-  }
-  else {
+  } else {
     newLocationText = newLocationFriendlyText;
   }
 
   // Check if code is Unidentified then redirect to docs
-  var newCodeText = '';
-  if (e.code != null && e.code === 'Unidentified'){
+  let newCodeText = '';
+  if (e.code != null && e.code === 'Unidentified') {
     newCodeText = '<a href="https://w3c.github.io/uievents-code/#table-key-code-special" target="_blank" rel="noopener">Unidentified</a>';
   } else {
     newCodeText = e.code || '';
@@ -298,27 +385,72 @@ body.onkeydown = function(e) {
   document.querySelector('.item-location .main-description').innerHTML = newLocationText;
   document.querySelector('.item-which .main-description').innerHTML = e.which || '';
   document.querySelector('.item-code .main-description').innerHTML = newCodeText;
-
-  // document.querySelector('.text-display').innerHTML =
-  //   keyCodes[e.keyCode] ||
-  //   `huh? Let me know what browser and key this was. <a href="https://github.com/wesbos/keycodes/issues/new?title=Missing keycode ${e.keyCode}&body=Tell me what key it was or even better, submit a Pull request!">Submit to Github</a>`;
 };
 
-(function(i, s, o, g, r, a, m) {
-  i.GoogleAnalyticsObject = r;
-  (i[r] =
-    i[r] ||
-    function() {
-      (i[r].q = i[r].q || []).push(arguments);
-    }),
-    (i[r].l = 1 * new Date());
-  (a = s.createElement(o)), (m = s.getElementsByTagName(o)[0]);
-  a.async = 1;
-  a.src = g;
-  m.parentNode.insertBefore(a, m);
-})(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+body.onkeyup = function(e) {
+  if(e.keyCode == '44') {
+    body.onkeydown(e);
+  }
+};
 
-ga('create', 'UA-50371747-1', 'keycode.info');
-ga('send', 'pageview');
+const cardDivs = document.querySelectorAll('.card');
+Array.from(cardDivs).forEach(card => {
+  card.addEventListener('click', onCardClick);
+});
 
+function onCardClick() {
+  const card = this;
+  let description = card.querySelector('.card-main .main-description').innerHTML;
+  description = description.replace(/<[^>]*>?/gm, '');
+  if (description === spaceDescription) {
+    description = ' ';
+  }
+  copyTextToClipboard(description);
+}
+
+// #endregion
+
+// #region Theme Methods
+
+function queryMediaTheme() {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    theme = e.matches ? 'dark' : 'light';
+    updateTheme();
+  });
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    theme = 'dark';
+  } else {
+    theme = 'light';
+  }
+}
+
+function toggleTheme() {
+  theme = (theme === 'light') ? 'dark' : 'light';
+  updateTheme();
+}
+
+function updateTheme() {
+  const html = document.querySelector("html");
+  const button = document.querySelector("#theme-button");
+
+  if (theme === 'light') {
+    html.classList.add('light-theme');
+    html.classList.remove('dark-theme');
+    button.innerHTML = 'Dark theme';
+  } else {
+    html.classList.add('dark-theme');
+    html.classList.remove('light-theme');
+    button.innerHTML = 'Light theme';
+  }
+}
+
+// #endregion
+
+// #region Init Methods
+
+queryMediaTheme();
+updateTheme();
+createTable();
 drawNumberToCanvas('⌨️');
+
+// #endregion
